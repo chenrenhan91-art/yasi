@@ -7,6 +7,7 @@ class IELTSSpeakingApp {
       onSpeakingChange: (speaking) => this.handleSpeakingStateChange(speaking),
       onTranscriptUpdate: (finalText, interimText) => this.handleLiveTranscript(finalText, interimText),
       onAudioEnergy: (mode, energy, bands) => this.handleAudioEnergyUpdate(mode, energy, bands),
+      onRecognitionBlocked: () => this.syncRecognitionControl(),
       onError: (errMsg) => this.showToast(errMsg, 'warning')
     });
 
@@ -28,6 +29,8 @@ class IELTSSpeakingApp {
     this.timerSeconds = 60;
     this.timerPhase = 'prep';
     this.timerRunning = false;
+    this.mobilePane = 'practice';
+    this.chatSeenCount = 0;
 
     this.initDOM();
     this.startNewSession(true);
@@ -154,11 +157,14 @@ class IELTSSpeakingApp {
     this.updateTopicChrome();
     this.updateNotebookBadge();
     this.updateApiStatusIndicator();
+    this.bindMobileChrome();
+    this.syncRecognitionControl();
   }
 
   replayLastAgentQuestion() {
     const lastAgent = [...this.messages].reverse().find(m => m.role === 'agent');
     if (lastAgent) {
+      this.speech.announceIfSilent = true;
       this.speech.speak(lastAgent.text, this.agentMode);
     }
   }
@@ -374,6 +380,9 @@ class IELTSSpeakingApp {
 
     this.appendAgentMessage(firstEn, firstZh, speakGreeting);
     this.updateTopicChrome();
+    this.chatSeenCount = this.messages.length;
+    this.syncChatUnread();
+    this.setMobilePane('practice');
   }
 
   // ============================================================================
@@ -389,6 +398,91 @@ class IELTSSpeakingApp {
     if (randomBtn) randomBtn.classList.toggle('hidden', !examiner);
     if (customBtn) customBtn.classList.toggle('hidden', !examiner);
     if (topicLabel) topicLabel.classList.toggle('hidden', !examiner);
+  }
+
+  bindMobileChrome() {
+    const shell = document.querySelector('.shell');
+    const moreBtn = document.getElementById('more-btn');
+    const backdrop = document.getElementById('more-backdrop');
+    const tools = document.getElementById('exam-tools');
+    moreBtn?.addEventListener('click', () => {
+      const open = shell?.classList.toggle('is-more-open');
+      moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      backdrop?.classList.toggle('hidden', !open);
+    });
+    backdrop?.addEventListener('click', () => this.closeMore());
+    tools?.addEventListener('click', (event) => {
+      if (event.target.closest('button')) this.closeMore();
+    });
+    document.getElementById('pane-practice-btn')?.addEventListener('click', () => this.setMobilePane('practice'));
+    document.getElementById('pane-chat-btn')?.addEventListener('click', () => this.setMobilePane('chat'));
+
+    const applyViewport = () => {
+      const vv = window.visualViewport;
+      const height = vv ? vv.height : window.innerHeight;
+      const offset = vv ? vv.offsetTop : 0;
+      document.documentElement.style.setProperty('--app-height', `${Math.round(height)}px`);
+      document.documentElement.style.setProperty('--vv-offset', `${Math.round(offset)}px`);
+      document.body.classList.add('has-vv');
+      document.body.classList.toggle('is-keyboard', window.innerHeight - height > 140);
+    };
+    applyViewport();
+    window.visualViewport?.addEventListener('resize', applyViewport);
+    window.visualViewport?.addEventListener('scroll', applyViewport);
+    window.addEventListener('resize', applyViewport);
+
+    document.getElementById('user-text-input')?.addEventListener('focus', () => {
+      if (window.matchMedia('(max-width: 959px)').matches) this.setMobilePane('practice');
+    });
+  }
+
+  closeMore() {
+    document.querySelector('.shell')?.classList.remove('is-more-open');
+    document.getElementById('more-btn')?.setAttribute('aria-expanded', 'false');
+    document.getElementById('more-backdrop')?.classList.add('hidden');
+  }
+
+  setMobilePane(pane) {
+    this.mobilePane = pane === 'chat' ? 'chat' : 'practice';
+    const shell = document.querySelector('.shell');
+    if (shell) shell.dataset.pane = this.mobilePane;
+    const practiceBtn = document.getElementById('pane-practice-btn');
+    const chatBtn = document.getElementById('pane-chat-btn');
+    if (practiceBtn) {
+      practiceBtn.classList.toggle('is-on', this.mobilePane === 'practice');
+      practiceBtn.setAttribute('aria-pressed', this.mobilePane === 'practice' ? 'true' : 'false');
+    }
+    if (chatBtn) {
+      chatBtn.classList.toggle('is-on', this.mobilePane === 'chat');
+      chatBtn.setAttribute('aria-pressed', this.mobilePane === 'chat' ? 'true' : 'false');
+    }
+    if (this.mobilePane === 'chat') {
+      this.chatSeenCount = this.messages.length;
+      this.closeMore();
+    }
+    this.syncChatUnread();
+  }
+
+  syncChatUnread() {
+    const chatBtn = document.getElementById('pane-chat-btn');
+    if (!chatBtn) return;
+    chatBtn.classList.toggle('has-new', this.mobilePane !== 'chat' && this.messages.length > this.chatSeenCount);
+  }
+
+  syncRecognitionControl() {
+    const btn = document.getElementById('mic-record-btn');
+    const status = document.getElementById('mic-status-label');
+    if (!btn) return;
+    if (this.speech.canRecognize()) {
+      btn.disabled = false;
+      if (!this.speech.isListening) btn.textContent = '录音';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = '只能打字';
+    btn.classList.remove('is-recording');
+    btn.setAttribute('aria-pressed', 'false');
+    if (status) status.textContent = '这个浏览器不能录音，直接输入英文。';
   }
 
   updateTopicChrome() {
@@ -552,9 +646,17 @@ class IELTSSpeakingApp {
   handleListeningStateChange(listening) {
     const micBtn = document.getElementById('mic-record-btn');
     if (micBtn) {
-      micBtn.classList.toggle('is-recording', listening);
-      micBtn.setAttribute('aria-pressed', listening ? 'true' : 'false');
-      micBtn.textContent = listening ? '停止' : '录音';
+      if (!this.speech.canRecognize()) {
+        micBtn.classList.remove('is-recording');
+        micBtn.setAttribute('aria-pressed', 'false');
+        micBtn.disabled = true;
+        micBtn.textContent = '只能打字';
+      } else {
+        micBtn.disabled = false;
+        micBtn.classList.toggle('is-recording', listening);
+        micBtn.setAttribute('aria-pressed', listening ? 'true' : 'false');
+        micBtn.textContent = listening ? '停止' : '录音';
+      }
     }
     this.updateAmbient();
   }
@@ -571,6 +673,11 @@ class IELTSSpeakingApp {
   }
 
   toggleMicrophone() {
+    if (!this.speech.canRecognize()) {
+      this.syncRecognitionControl();
+      this.showToast('这个浏览器只能打字。', 'warning');
+      return;
+    }
     const inputEl = document.getElementById('user-text-input');
     if (this.speech.isListening) {
       const captured = this.speech.stopListening();
@@ -751,6 +858,7 @@ class IELTSSpeakingApp {
 
   speakSpecificText(encodedText, role = 'examiner') {
     const text = decodeURIComponent(encodedText);
+    this.speech.announceIfSilent = true;
     this.speech.speak(text, role);
   }
 
@@ -761,6 +869,7 @@ class IELTSSpeakingApp {
 
     const userTurnCount = this.messages.filter(m => m.role === 'user').length;
     if (countBadge) countBadge.textContent = `${userTurnCount} 轮`;
+    this.syncChatUnread();
 
     const stick = container.scrollHeight - container.scrollTop - container.clientHeight < 120;
     const savedTop = container.scrollTop;

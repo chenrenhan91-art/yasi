@@ -29,9 +29,52 @@ class SpeechEngine {
     this.accumulatedFinalTranscript = '';
     this.currentInterimTranscript = '';
     this.shouldKeepListening = false;
+    this.recognitionBlocked = false;
+    this.recognitionRetried = false;
+    this.announceIfSilent = false;
+    this.audioUnlocked = false;
 
     this.initTTS();
     this.initSTT();
+    this.installGestureUnlock();
+  }
+
+  canRecognize() {
+    return Boolean(this.sttSupported && this.recognition && !this.recognitionBlocked);
+  }
+
+  installGestureUnlock() {
+    const unlock = () => this.unlockAudio();
+    window.addEventListener('touchend', unlock, { once: true, passive: true });
+    window.addEventListener('click', unlock, { once: true });
+    const bridgeUnlock = () => {
+      try {
+        window.WeixinJSBridge.invoke('getNetworkType', {}, () => this.unlockAudio());
+      } catch (e) {}
+    };
+    if (window.WeixinJSBridge) bridgeUnlock();
+    else document.addEventListener('WeixinJSBridgeReady', bridgeUnlock, { once: true });
+  }
+
+  unlockAudio() {
+    if (this.audioUnlocked) return;
+    this.audioUnlocked = true;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      try {
+        const ctx = new AudioContextClass();
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        if (ctx.state === 'suspended') ctx.resume();
+        source.start(0);
+        setTimeout(() => ctx.close().catch(() => {}), 500);
+      } catch (e) {}
+    }
+    if (this.synth) {
+      try { this.synth.resume(); } catch (e) {}
+    }
   }
 
   getPreset() {
@@ -109,12 +152,24 @@ class SpeechEngine {
     };
 
     this.recognition.onerror = (event) => {
-      if (event.error === 'no-speech' || event.error === 'aborted') {
+      const code = event.error;
+      if (code === 'no-speech' || code === 'aborted') return;
+      if (code === 'not-allowed' || code === 'audio-capture') {
+        if (!this.recognitionRetried) {
+          this.recognitionRetried = true;
+          this.shouldKeepListening = false;
+          this.recoverRecognition();
+          return;
+        }
+        this.blockRecognition();
         return;
       }
-      console.warn('SpeechRecognition error:', event.error);
+      if (code === 'service-not-allowed' || code === 'language-not-supported') {
+        this.blockRecognition();
+        return;
+      }
       if (this.callbacks.onError) {
-        this.callbacks.onError(`语音识别提示: ${event.error}`);
+        this.callbacks.onError('语音识别没有连上，可以直接打字。');
       }
     };
 
@@ -317,17 +372,21 @@ class SpeechEngine {
       if (onComplete) onComplete();
     };
 
-    // Immediately trigger speaking visual light effect so the user ALWAYS sees dynamic feedback
-    notifyStart();
+    const armFallback = () => {
+      if (this.speakingFallbackTimer) clearTimeout(this.speakingFallbackTimer);
+      this.speakingFallbackTimer = setTimeout(() => notifyEnd(), estimatedDurationMs + 800);
+    };
+    const beginSpeaking = () => {
+      notifyStart();
+      armFallback();
+    };
 
-    // Safety fallback timer so the light effect is guaranteed to stay active for the speech duration
-    // and never gets stuck indefinitely if browser TTS hangs
-    this.speakingFallbackTimer = setTimeout(() => {
-      notifyEnd();
-    }, estimatedDurationMs + 800);
-
-    // 1. Try Local Python rany2/edge-tts bridge if running via server.py
-    if ((this.ttsEngineMode === 'edge_local' || this.ttsEngineMode === 'auto') && window.location.protocol.startsWith('http')) {
+    // Local edge-tts only. A failed request on the public site would leave the click
+    // gesture, and WeChat / iOS would then refuse speechSynthesis.
+    const localServer = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+    const tryEdge = (this.ttsEngineMode === 'edge_local' || (this.ttsEngineMode === 'auto' && localServer))
+      && window.location.protocol.startsWith('http');
+    if (tryEdge) {
       try {
         const res = await fetch(`/api/tts?text=${encodeURIComponent(cleanText)}&voice=${encodeURIComponent(preset.edgeVoice)}&rate=${encodeURIComponent(this.rate)}`);
         if (res.ok && res.headers.get('Content-Type')?.includes('audio')) {
@@ -347,17 +406,18 @@ class SpeechEngine {
           audio.onerror = () => {
             URL.revokeObjectURL(url);
             this.currentAudio = null;
-            this.speakWithHumanizedProsody(cleanText, preset, estimatedDurationMs, notifyEnd);
+            this.speakWithHumanizedProsody(cleanText, preset, estimatedDurationMs, notifyEnd, beginSpeaking, false);
           };
+          beginSpeaking();
           await audio.play();
           return;
         }
       } catch (e) {}
     }
 
-    // 2. Try Kokoro-82M WebGPU/WASM in-browser neural engine if user selected 'kokoro_wasm'
     if (this.ttsEngineMode === 'kokoro_wasm') {
       try {
+        beginSpeaking();
         await this.speakWithKokoroWasm(cleanText, preset, notifyEnd);
         return;
       } catch (e) {
@@ -365,13 +425,23 @@ class SpeechEngine {
       }
     }
 
-    // 3. Default: Humanized Prosody Web Speech Engine
-    this.speakWithHumanizedProsody(cleanText, preset, estimatedDurationMs, notifyEnd);
+    const announce = this.announceIfSilent;
+    this.announceIfSilent = false;
+    this.speakWithHumanizedProsody(cleanText, preset, estimatedDurationMs, notifyEnd, beginSpeaking, announce);
   }
 
-  speakWithHumanizedProsody(cleanText, preset, estimatedDurationMs, notifyEnd) {
-    if (!this.synth) {
-      setTimeout(notifyEnd, estimatedDurationMs);
+  hasAudibleVoice() {
+    if (!this.synth) return false;
+    if (!this.voices || !this.voices.length) {
+      this.voices = this.synth.getVoices() || [];
+    }
+    return true;
+  }
+
+  speakWithHumanizedProsody(cleanText, preset, estimatedDurationMs, notifyEnd, beginSpeaking, announce) {
+    if (!this.synth || !this.hasAudibleVoice()) {
+      if (announce && this.callbacks.onError) this.callbacks.onError('这个浏览器读不出声音。');
+      notifyEnd();
       return;
     }
 
@@ -416,6 +486,13 @@ class SpeechEngine {
       const chunkRateMultiplier = idx === 1 && chunks.length > 1 ? 1.02 : (isQuestion ? 0.98 : 1.0);
       utter.rate = Math.max(0.75, Math.min(1.35, this.rate * chunkRateMultiplier));
 
+      utter.onstart = () => {
+        if (started) return;
+        started = true;
+        clearTimeout(silenceTimer);
+        beginSpeaking();
+      };
+
       utter.onend = () => {
         if (this.speechCancelled) {
           notifyEnd();
@@ -435,6 +512,17 @@ class SpeechEngine {
       this.synth.speak(utter);
     };
 
+    let started = false;
+    const silenceTimer = setTimeout(() => {
+      if (started || this.speechCancelled) return;
+      try { this.synth.cancel(); } catch (e) {}
+      if (announce && this.callbacks.onError) this.callbacks.onError('这个浏览器读不出声音。');
+      notifyEnd();
+    }, 1800);
+
+    if (announce) {
+      try { this.synth.resume(); } catch (e) {}
+    }
     // 45ms delay prevents Chromium cancel() race condition
     this.chunkTimeout = setTimeout(speakNextChunk, 45);
   }
@@ -494,15 +582,42 @@ class SpeechEngine {
     }
   }
 
-  startListening(initialText = '') {
-    if (!this.sttSupported || !this.recognition) {
-      if (this.callbacks.onError) {
-        this.callbacks.onError('当前浏览器不支持原生语音识别，建议使用 Chrome 或 Edge 浏览器，或直接在下方输入框打字练习。');
+  blockRecognition() {
+    if (this.recognitionBlocked) return;
+    this.recognitionBlocked = true;
+    this.shouldKeepListening = false;
+    this.isListening = false;
+    this.stopMicAudioAnalyzer();
+    if (this.callbacks.onListeningChange) this.callbacks.onListeningChange(false);
+    if (this.callbacks.onRecognitionBlocked) this.callbacks.onRecognitionBlocked();
+    if (this.callbacks.onError) this.callbacks.onError('这个浏览器只能打字。');
+  }
+
+  recoverRecognition() {
+    const media = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+    if (!media) {
+      this.blockRecognition();
+      return;
+    }
+    media.call(navigator.mediaDevices, { audio: true }).then((stream) => {
+      stream.getTracks().forEach(track => track.stop());
+      try {
+        this.shouldKeepListening = true;
+        this.recognition.start();
+      } catch (e) {
+        this.blockRecognition();
       }
+    }).catch(() => this.blockRecognition());
+  }
+
+  startListening(initialText = '') {
+    if (!this.canRecognize()) {
+      this.blockRecognition();
       return false;
     }
 
     this.stopSpeaking();
+    this.unlockAudio();
 
     this.accumulatedFinalTranscript = initialText ? initialText.trim() : '';
     this.currentInterimTranscript = '';
@@ -513,12 +628,14 @@ class SpeechEngine {
       this.recognition.start();
       return true;
     } catch (e) {
-      this.isListening = true;
-      this.startMicAudioAnalyzer();
-      if (this.callbacks.onListeningChange) {
-        this.callbacks.onListeningChange(true);
+      if (e && e.name === 'InvalidStateError') return true;
+      if (!this.recognitionRetried) {
+        this.recognitionRetried = true;
+        this.recoverRecognition();
+        return false;
       }
-      return true;
+      this.blockRecognition();
+      return false;
     }
   }
 

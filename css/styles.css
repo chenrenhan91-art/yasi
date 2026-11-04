@@ -60,21 +60,39 @@
 
 html, body { height: 100%; }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
+  height: 100vh;
   height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overscroll-behavior: none;
   background: var(--bg);
   color: var(--ink);
   font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
-button, input, select, textarea { font: inherit; color: inherit; }
+body.has-vv {
+  position: fixed;
+  top: var(--vv-offset, 0px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: var(--app-height);
+}
+
+button, input, select, textarea { font: inherit; color: inherit; touch-action: manipulation; }
 button { cursor: pointer; }
+button:disabled { cursor: default; opacity: 0.72; }
 h2, h3, p { margin: 0; }
 
 :focus { outline: none; }
@@ -153,11 +171,18 @@ body.is-user-speaking .speak-glow-user span {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
+  padding-left: calc(12px + env(safe-area-inset-left));
+  padding-right: calc(12px + env(safe-area-inset-right));
   background: var(--surface);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
+
+.exam-tools { display: contents; }
+.topbar > .more-btn,
+.mobile-nav,
+.more-backdrop { display: none; }
 
 .product-name {
   font-weight: 700;
@@ -224,6 +249,8 @@ body.is-user-speaking .speak-glow-user span {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 20px 20px 12px;
   display: flex;
   flex-direction: column;
@@ -251,7 +278,7 @@ body.is-user-speaking .speak-glow-user span {
 }
 
 @media (max-width: 959px) {
-  .practice { max-height: 62dvh; }
+  .practice { max-height: none; }
 }
 
 @media (min-width: 960px) {
@@ -437,6 +464,8 @@ body.is-user-speaking .speak-glow-user span {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 20px;
 }
 
@@ -672,6 +701,8 @@ body.is-user-speaking .btn-record::before {
 }
 .modal-head h3 { font-size: 1rem; }
 .modal-body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   flex: 1;
   min-height: 0;
   padding: 16px;
@@ -814,4 +845,130 @@ textarea.field { height: auto; padding: 8px 10px; resize: vertical; }
   .speak-glow { display: none; }
   body.is-agent-speaking .practice { box-shadow: inset 0 4px 0 var(--accent); }
   body.is-user-speaking .practice { box-shadow: inset 0 -4px 0 var(--danger); }
+}
+
+@media (max-width: 959px) {
+  .shell, .workspace, .practice, .transcript-pane { min-width: 0; max-width: 100%; }
+  .practice, .transcript-pane { flex: 1 1 auto; }
+  .topbar { flex-wrap: nowrap; min-width: 0; }
+  .product-name { display: none; }
+  #agent-switcher-cards { order: 0; flex: 0 0 auto; }
+  .topic-label { order: 1; flex: 1 1 0; min-width: 0; }
+  .topbar > .more-btn { order: 2; display: inline-flex; flex-shrink: 0; min-height: 40px; }
+
+  .more-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 34;
+    border: 0;
+    background: rgba(12, 12, 14, 0.28);
+  }
+
+  .exam-tools {
+    display: none;
+    position: fixed;
+    z-index: 35;
+    left: calc(12px + env(safe-area-inset-left));
+    right: calc(12px + env(safe-area-inset-right));
+    top: calc(var(--vv-offset, 0px) + 56px + env(safe-area-inset-top));
+    max-height: calc(var(--app-height, 100dvh) - 72px - env(safe-area-inset-bottom));
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+  }
+  .shell.is-more-open .exam-tools { display: flex; }
+  .exam-tools > *,
+  .exam-tools #random-topic-btn,
+  .exam-tools #ielts-part-tabs,
+  .exam-tools .topbar-actions,
+  .exam-tools .btn-custom,
+  .exam-tools .btn-restart { order: 0; }
+  .exam-tools > * { width: 100%; }
+  .exam-tools .btn { min-height: 44px; }
+  .exam-tools .segment { width: 100%; }
+  .exam-tools .segment button { flex: 1; height: 40px; }
+  .exam-tools .topbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    margin: 0;
+  }
+  .exam-tools .topbar-actions .btn { flex: 1 1 30%; }
+
+  .shell[data-pane="practice"] .transcript-pane { display: none; }
+  .shell[data-pane="chat"] .practice { display: none; }
+  .transcript-pane { flex: 1; border-top: none; }
+
+  .mobile-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .mobile-nav button {
+    position: relative;
+    min-height: 48px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.9375rem;
+    font-weight: 700;
+  }
+  .mobile-nav button.is-on { color: var(--accent); }
+  .mobile-nav button.has-new::after {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-left: 6px;
+    border-radius: 99px;
+    background: var(--danger);
+    vertical-align: 1px;
+  }
+  body.is-keyboard .mobile-nav { display: none; }
+
+  .question-en { font-size: 1.15rem; }
+  .composer { padding-bottom: 10px; }
+  body.is-keyboard .composer { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  .composer-input,
+  .field,
+  textarea.field,
+  select.field,
+  .tool-select { font-size: 16px; }
+  .tool-row { flex-wrap: wrap; }
+  .btn-record,
+  .btn-send { min-height: 44px; }
+
+  .modal-back {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal,
+  .modal-sm {
+    width: 100%;
+    max-height: min(92dvh, var(--app-height, 92dvh));
+    border-radius: 12px 12px 0 0;
+    border-bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .form-grid { grid-template-columns: 1fr; }
+
+  .toast {
+    left: 12px;
+    right: 12px;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    max-width: none;
+  }
+  body.is-keyboard .toast { bottom: 12px; }
 }
