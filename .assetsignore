@@ -1,4 +1,5 @@
 .git
+.cursor
 .wrangler
 node_modules
 package.json

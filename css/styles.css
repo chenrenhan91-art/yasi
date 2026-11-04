@@ -487,8 +487,9 @@ body.is-user-speaking .speak-glow-user span {
 .upgrades { margin-top: 4px; }
 .upgrade { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 .upgrade-level { font-size: 0.8125rem; font-weight: 700; }
-.upgrade p { margin-top: 6px; line-height: 1.55; }
-.band-estimate { margin-top: 8px; color: var(--muted); font-size: 0.8125rem; }
+.upgrade-sentence { margin-top: 8px; font-size: 1.02rem; line-height: 1.55; font-weight: 650; }
+.upgrade-keep { margin-top: 6px; color: var(--muted); font-size: 0.875rem; }
+.upgrade-note { margin-top: 6px; color: var(--muted); font-size: 0.875rem; }
 
 .hl {
   background: color-mix(in srgb, var(--accent) 16%, var(--surface));

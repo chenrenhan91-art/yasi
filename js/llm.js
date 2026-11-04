@@ -240,39 +240,49 @@ Return ONLY valid JSON: {"en": "Your spoken English response", "zh": "对应的�
   async analyzeUtteranceParallel(userText, contextQuestion = '', agentMode = 'examiner') {
     if (this.isLiveApiActive()) {
       try {
-        const prompt = `You are an expert IELTS Speaking Band 9 coach. Analyze the user's spoken English utterance silently in the background.
-Context question asked to user: "${contextQuestion}"
-User's spoken utterance: "${userText}"
+        const prompt = `You are an IELTS Speaking coach. Rewrite the candidate's answer into two speakable upgrades. Keep every fact, opinion, and example they actually said. Do not add new reasons, feelings, places, or examples.
 
-Return ONLY a valid JSON object with the exact following keys (MUST include accurate, natural Chinese translations in "correctedZh" and each upgrade's "translationZh"):
+Context question: "${contextQuestion}"
+Candidate said: "${userText}"
+
+Rules for both upgrades:
+- Spoken English, not an essay. A candidate could say it aloud in one or two breaths.
+- Do not bolt on filler such as "day-to-day life", "a genuine sense of fulfillment", or "noticeable difference" unless the candidate said that.
+- highlights must be exact phrases copied from that upgrade's sentence. One or two phrases only. These are the chunks worth memorizing.
+- noteZh is one plain Chinese sentence: what to steal, and why it is more precise or more natural. No grammar jargon.
+
+7分说法: same meaning as the candidate, with one natural collocation and clean grammar.
+8分说法: same meaning, with one more precise phrase and one spoken complex structure, such as a reason clause or a what-clause. It must still sound like speech.
+
+Return ONLY valid JSON:
 {
   "status": "perfect" | "minor_issues" | "needs_improvement",
   "original": "the exact user utterance",
-  "corrected": "a grammatically correct, natural English version of the user's sentence",
-  "correctedZh": "地道修正句对应的精准中文翻译",
+  "corrected": "a grammatically correct version that does not upgrade the level yet",
+  "correctedZh": "修正句的中文",
   "estimatedTurnBand": 6.5,
   "issues": [
     {
       "type": "语法/时态/搭配/用词",
-      "originalSpan": "problematic part in user's text",
+      "originalSpan": "problematic part",
       "replacementSpan": "corrected phrase",
-      "explanationZh": "concise Chinese explanation of why this should be improved"
+      "explanationZh": "一句中文，说明为什么要改"
     }
   ],
   "band7Upgrades": [
     {
-      "level": "Band 7.0 地道表达",
-      "sentence": "An upgraded, idiomatic Band 7.0 English version of what the user wanted to say",
-      "translationZh": "该句 Band 7.0 英文对应的流畅中文翻译",
-      "highlights": ["key collocation 1", "idiom 2"],
-      "noteZh": "Brief Chinese note explaining the highlight expressions"
+      "level": "7分说法",
+      "sentence": "the band 7 spoken sentence",
+      "translationZh": "这句英文的中文",
+      "highlights": ["exact phrase from the sentence"],
+      "noteZh": "一句中文"
     },
     {
-      "level": "Band 8.0 高分进阶",
-      "sentence": "A sophisticated Band 8.0+ English version with complex sentence structure and precise lexical resource",
-      "translationZh": "该句 Band 8.0 英文对应的流畅中文翻译",
-      "highlights": ["advanced phrase 1", "complex structure 2"],
-      "noteZh": "Brief Chinese note on the advanced grammar/lexical upgrade"
+      "level": "8分说法",
+      "sentence": "the band 8 spoken sentence",
+      "translationZh": "这句英文的中文",
+      "highlights": ["exact phrase from the sentence"],
+      "noteZh": "一句中文"
     }
   ]
 }`;
@@ -417,23 +427,15 @@ Return ONLY a valid JSON object with the exact following keys (MUST include accu
 
     if (wordCount < 10 && issues.length === 0) {
       issues.push({
-        type: '句群拓展建议 (FC & GRA)',
+        type: '可以再补一句',
         originalSpan: raw,
-        replacementSpan: `${corrected.replace(/\.$/, '')}, mainly because it brings a genuine sense of fulfillment.`,
-        explanationZh: '当前回答较为简短，在雅思口语中建议采用“直接观点 + 原因阐述（mainly because...）+ 细节举例”结构拉长句群。'
+        replacementSpan: corrected.replace(/\.$/, ''),
+        explanationZh: '这句比较短。可以在后面用 mainly because 补一个你自己的原因，不要另编没发生过的事。'
       });
     }
 
     const cleanCore = corrected.replace(/^(From my perspective,\s*|Honestly,\s*|I think\s*|Well,\s*|Actually,\s*)/i, '').replace(/[.!?]+$/, '');
-    const lowerCore = cleanCore.charAt(0).toLowerCase() + cleanCore.slice(1);
     const baseMeaningZh = this.translateSentenceToChinese(corrected);
-
-    const band7Sentence = `To be completely honest, ${lowerCore}, which really makes a noticeable difference in my day-to-day life.`;
-    const band7Zh = `坦率地说，${baseMeaningZh.replace(/^(老实说，|坦率地说，|我认为)/, '').replace(/。$/, '')}，这在我的日常生活中确实带来了显著的积极改变。`;
-
-    const band8Sentence = `What stands out to me most is the fact that ${lowerCore}, offering both practical value and a genuine sense of fulfillment.`;
-    const band8Zh = `最令我印象深刻的一点在于，${baseMeaningZh.replace(/^(老实说，|坦率地说，|我认为)/, '').replace(/。$/, '')}，这不仅兼具实际价值，更带来了满满的充实感。`;
-
     const estimatedBand = wordCount >= 22
       ? (issues.length === 0 ? 7.5 : 7.0)
       : (wordCount >= 12 ? (issues.length <= 1 ? 6.5 : 6.0) : 5.5);
@@ -449,26 +451,82 @@ Return ONLY a valid JSON object with the exact following keys (MUST include accu
           type: '语法与表意准确',
           originalSpan: raw,
           replacementSpan: corrected,
-          explanationZh: '本句基础语法准确！可参考下方 Band 7.0 / 8.0 进阶句型，加入非限定性定语从句或主语从句进一步拔高得分。'
+          explanationZh: '这句语法说得通。下面两句只把同一意思说得更顺口，不另加内容。'
         }
       ],
-      band7Upgrades: [
+      band7Upgrades: this.buildSpokenUpgrades(corrected, baseMeaningZh, cleanCore)
+    };
+  }
+
+  buildSpokenUpgrades(corrected, correctedZh, cleanCore) {
+    const core = String(cleanCore || corrected || '').replace(/[.!?]+$/, '').trim();
+    const spoken = /^I\b/.test(core) ? core : core.charAt(0).toLowerCase() + core.slice(1);
+    const lower = spoken.toLowerCase();
+    const zh = String(correctedZh || '').replace(/。$/, '');
+    const alreadyFramed = /^(what |i'd |i would |looking back|the main reason|the point )/i.test(core);
+
+    if (alreadyFramed) {
+      const sentence = /[.!?]$/.test(corrected) ? corrected : `${core}.`;
+      return [
         {
-          level: 'Band 7.0 地道表达',
-          sentence: band7Sentence,
-          translationZh: band7Zh,
-          highlights: ['To be completely honest', 'makes a noticeable difference', 'day-to-day life'],
-          noteZh: '引入自然话语标记语（Discourse Marker）与 which 非限定性定语从句，语流自然连贯。'
+          level: '7分说法',
+          sentence,
+          translationZh: zh ? `${zh}。` : '',
+          highlights: [],
+          noteZh: '这句已经有口头框架，保持原话即可。'
         },
         {
-          level: 'Band 8.0 高分进阶',
-          sentence: band8Sentence,
-          translationZh: band8Zh,
-          highlights: ['What stands out to me most', 'a genuine sense of fulfillment'],
-          noteZh: '使用 What 主语从句聚焦核心观点，并搭配现在分词伴随状语（offering...），大幅提升语法广度（GRA）。'
+          level: '8分说法',
+          sentence: `To put it more precisely, ${spoken}.`,
+          translationZh: zh ? `说得更确切一点，${zh}。` : '',
+          highlights: ['To put it more precisely'],
+          noteZh: '只加一句收束，不补充你没说过的原因或例子。'
         }
-      ]
-    };
+      ];
+    }
+
+    let band7;
+    let band8;
+    let note7;
+    let note8;
+    let zh7;
+    let zh8;
+    let mark7;
+    let mark8;
+
+    if (/\b(went|visited|saw|watched|was|were|did|had)\b/.test(lower)) {
+      band7 = `Looking back, ${spoken}.`;
+      mark7 = 'Looking back';
+      note7 = '用 Looking back 把经历说成回头看的一件事，事实还是你说的那些。';
+      zh7 = zh ? `回头看，${zh}。` : '';
+      band8 = `What stayed with me is that ${spoken}.`;
+      mark8 = 'What stayed with me';
+      note8 = '用 What stayed with me 把一句经历收成口语里的重点。';
+      zh8 = zh ? `让我一直记得的是，${zh}。` : '';
+    } else if (/\b(enjoy|like|love|prefer|keen|fond)\b/.test(lower)) {
+      band7 = `What appeals to me is that ${spoken}.`;
+      mark7 = 'What appeals to me';
+      note7 = '用 What appeals to me 先给态度，后面仍是你原来的内容。';
+      zh7 = zh ? `吸引我的是，${zh}。` : '';
+      band8 = `The main reason I feel this way is that ${spoken}.`;
+      mark8 = 'The main reason I feel this way';
+      note8 = '用原因从句把态度说完整，没有另编例子。';
+      zh8 = zh ? `我这么觉得，主要是因为${zh}。` : '';
+    } else {
+      band7 = `I'd put it this way: ${core}.`;
+      mark7 = "I'd put it this way";
+      note7 = '先用一句口头标记把节奏放慢，内容还是你说的那句。';
+      zh7 = zh ? `我想这样说：${zh}。` : '';
+      band8 = `The point I want to make is that ${spoken}.`;
+      mark8 = 'The point I want to make';
+      note8 = '用 The point I want to make 把回答收成一句明确的话。';
+      zh8 = zh ? `我想说的重点是，${zh}。` : '';
+    }
+
+    return [
+      { level: '7分说法', sentence: band7, translationZh: zh7, highlights: [mark7], noteZh: note7 },
+      { level: '8分说法', sentence: band8, translationZh: zh8, highlights: [mark8], noteZh: note8 }
+    ];
   }
 
   // ============================================================================

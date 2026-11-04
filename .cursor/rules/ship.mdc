@@ -1,0 +1,15 @@
+---
+description: 这个项目每次改完都要推送到 GitHub 并部署到 Cloudflare
+alwaysApply: true
+---
+
+# 改完即上线
+
+用户要求：这个项目之后的每一步修改，都要推送并部署上线。
+
+改完并核对之后：
+
+1. 提交当前改动。不要改 git config，不要跳过 hooks，不要 force push。
+2. 推到 `origin` 的当前分支。本机直连 GitHub 经常失败，优先用已经在跑的本地代理 `http://127.0.0.1:8899`。不要把 token 写进命令或回复。
+3. 用项目里的 Wrangler 部署到现有的 `yasi` Worker。Cloudflare 接口被假 IP DNS 挡住时，用已有的 TLS 预加载，不要换账号、不要新建项目。
+4. 回复里给出线上地址。部署失败要说明卡在哪一步，不要假装已经上线。

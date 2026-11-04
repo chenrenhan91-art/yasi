@@ -839,12 +839,8 @@ class IELTSSpeakingApp {
     if (!msg.correction) return '';
 
     const c = msg.correction;
-    const encodedCorrected = encodeURIComponent(c.corrected || msg.text);
     const showUpgrades = this.agentMode === 'examiner' && Array.isArray(c.band7Upgrades) && c.band7Upgrades.length > 0;
     const upgradesOpen = Boolean(msg.upgradesOpen);
-    const bandNote = showUpgrades && Number.isFinite(Number(c.estimatedTurnBand))
-      ? `<p class="band-estimate">这一轮文字大约 ${Number(c.estimatedTurnBand).toFixed(1)}，是估算。</p>`
-      : '';
 
     const issues = Array.isArray(c.issues) && c.issues.length > 0
       ? c.issues.map(iss => `
@@ -861,17 +857,21 @@ class IELTSSpeakingApp {
 
     const upgrades = showUpgrades && upgradesOpen ? `
       <div class="upgrades">
-        ${bandNote}
-        ${c.band7Upgrades.map((up, idx) => {
+        ${c.band7Upgrades.slice(0, 2).map((up, idx) => {
           const encodedUp = encodeURIComponent(up.sentence || '');
+          const level = idx === 1 || /8/.test(up.level || '') ? '8分说法' : '7分说法';
+          const kept = (Array.isArray(up.highlights) ? up.highlights : [])
+            .filter(phrase => phrase && String(up.sentence || '').toLowerCase().includes(String(phrase).toLowerCase()))
+            .slice(0, 2);
           return `
             <div class="upgrade">
               <div class="upgrade-top">
-                <span class="upgrade-level">${this.escapeHtml(up.level || '高分说法')}</span>
+                <span class="upgrade-level">${level}</span>
                 <button type="button" class="text-btn" onclick="app.speakSpecificText('${encodedUp}', '${this.agentMode}')">听这句</button>
                 <button type="button" class="text-btn" onclick="app.saveUpgradeToNotebook('${msg.id}', ${idx})">收入语料</button>
               </div>
-              <p>${this.highlightPhrases(up.sentence, up.highlights)}</p>
+              <p class="upgrade-sentence">${this.highlightPhrases(up.sentence, kept)}</p>
+              ${kept.length ? `<p class="upgrade-keep">先记 ${kept.map(phrase => `<span class="hl">${this.escapeHtml(phrase)}</span>`).join(' ')}</p>` : ''}
               ${this.showChineseTranslation && up.translationZh ? `<p class="correction-zh" lang="zh-CN">${this.escapeHtml(up.translationZh)}</p>` : ''}
               ${up.noteZh ? `<p class="upgrade-note">${this.escapeHtml(up.noteZh)}</p>` : ''}
             </div>
@@ -884,8 +884,7 @@ class IELTSSpeakingApp {
       <div class="correction">
         <div class="correction-head">
           <strong>修正</strong>
-          <button type="button" class="text-btn push" onclick="app.speakSpecificText('${encodedCorrected}', '${this.agentMode}')">听修正</button>
-          <button type="button" class="text-btn" onclick="app.saveCorrectionToNotebook('${msg.id}')">收藏</button>
+          <button type="button" class="text-btn push" onclick="app.saveCorrectionToNotebook('${msg.id}')">收藏</button>
         </div>
         <p class="correction-sentence" lang="en">${this.escapeHtml(c.corrected)}</p>
         ${this.showChineseTranslation && c.correctedZh ? `<p class="correction-zh" lang="zh-CN">${this.escapeHtml(c.correctedZh)}</p>` : ''}
