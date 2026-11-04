@@ -52,15 +52,16 @@ window.IELTS_DATA = {
   agents: {
     examiner: {
       id: 'examiner',
-      name: 'Dr. Arthur Pendelton',
-      role: 'IELTS Senior Examiner',
-      badge: '雅思官方模考官',
+      name: 'Claire Hargreaves',
+      nameZh: '克莱尔·哈格里夫斯',
+      role: 'IELTS Speaking Examiner',
+      badge: '雅思口语考官',
       avatar: '🎓',
       defaultVoiceId: 'uk-ryan',
       themeColor: 'indigo',
-      description: '严格遵循官方 Part 1 / 2 / 3 模考规程，克制专业的英伦考官语调，针对性追问并在结束时出具四维诊断报告。',
-      defaultGreeting: "Good morning. My name is Arthur Pendelton. Could you please tell me your full name, and what should I call you?",
-      defaultGreetingZh: "早上好。我是阿瑟·彭德尔顿。请问你的全名是什么？我该怎么称呼你？"
+      description: '按 Part 1、Part 2、Part 3 往下问，不在对话里改语法。',
+      defaultGreeting: "Good morning. My name is Claire Hargreaves. Could you tell me your full name, please?",
+      defaultGreetingZh: "早上好。我是克莱尔·哈格里夫斯。请告诉我你的全名。"
     },
     casual: {
       id: 'casual',
@@ -381,6 +382,323 @@ window.IELTS_DATA = {
           "That's a multifaceted question. While grass-roots efforts certainly raise awareness, systemic change ultimately hinges on...",
           "Looking at most rapidly growing metropolises, the most pressing issue tends to be..."
         ]
+      }
+    },
+    {
+      id: 'uk-2025-10-lives-alone',
+      part: 'Full Mock',
+      category: '考生回忆',
+      title: '2025年10月英国场：工作、假期、朋友 + 独自生活的人',
+      tag: '考生回忆',
+      cueCard: {
+        topic: 'Describe someone you know who lives alone.',
+        topicZh: '描述一个你认识的独自生活的人。',
+        prompts: [
+          'Who this person is (这个人是谁)',
+          'Where they live (他们住在哪里)',
+          'Why they live alone (为什么独自生活)',
+          'And explain how they feel about living alone. (并说明他们对独自生活的感受)'
+        ]
+      },
+      questions: {
+        part1: [
+          { en: "Do you work or are you a student?", zh: "你是在工作，还是学生？" },
+          { en: "What do you do to improve your performance at work?", zh: "你会做些什么来提高工作表现？" },
+          { en: "How many hours do you usually work each week?", zh: "你通常每周工作多少小时？" },
+          { en: "If you could change one thing about your job, what would it be?", zh: "如果能改工作里的一件事，你会改什么？" },
+          { en: "What is your favourite day of the week, and why?", zh: "你一周里最喜欢哪一天？为什么？" },
+          { en: "Do your holidays always follow a similar routine?", zh: "你的假期是不是总是差不多的安排？" },
+          { en: "Why do you think friendships are important?", zh: "你为什么觉得友谊重要？" },
+          { en: "How often do you meet your friends?", zh: "你多久见一次朋友？" }
+        ],
+        part2: [
+          { en: "Now I'm going to give you a topic, and I'd like you to talk about it for one to two minutes. You have one minute to prepare. Here is your topic card: 'Describe someone you know who lives alone.'", zh: "现在给你一个话题，请说一到两分钟。你有一分钟准备。题卡是：描述一个你认识的独自生活的人。" }
+        ],
+        part3: [
+          { en: "Why do you think more young people today prefer living on their own?", zh: "你为什么觉得现在更多年轻人愿意一个人住？" },
+          { en: "What kind of skills are important for people who live alone?", zh: "独自生活的人需要哪些重要的能力？" },
+          { en: "How does living alone in one's hometown differ from living alone in another city?", zh: "在家乡独自生活，和在另一座城市独自生活，有什么不同？" },
+          { en: "Do you think living alone can make people more responsible?", zh: "你觉得独自生活会让人更有责任感吗？" },
+          { en: "What challenges do people face when they live by themselves?", zh: "一个人生活会遇到哪些困难？" },
+          { en: "How do cultural values influence people's decisions about living alone?", zh: "文化观念会怎样影响人们是否选择独自生活？" }
+        ]
+      },
+      sampleHints: {
+        vocab: [
+          { term: 'live on my own', meaning: '独自生活', example: 'My aunt has lived on her own since she moved to the city.' },
+          { term: 'a sense of independence', meaning: '独立感', example: 'Living alone gave her a strong sense of independence.' }
+        ],
+        angles: ['先说这个人是谁、住在哪，再讲一件能看出他们感受的小事。'],
+        starters: ["The person who comes to mind is my...", "What stands out about their life alone is..."]
+      }
+    },
+    {
+      id: 'p2-actor-admire',
+      part: 'Part 2 & 3',
+      category: '考生回忆',
+      title: '考生回忆：你欣赏的演员',
+      tag: '考生回忆',
+      cueCard: {
+        topic: 'Describe an actor or actress you admire.',
+        topicZh: '描述一个你欣赏的演员。',
+        prompts: [
+          'Who the person is (这个人是谁)',
+          'What kind of roles they usually play (他们通常演什么角色)',
+          'Why you admire them (你为什么欣赏他们)',
+          'And explain how they have impressed you. (并说明他们如何给你留下印象)'
+        ]
+      },
+      questions: {
+        part1: [
+          { en: "Do you like watching films?", zh: "你喜欢看电影吗？" },
+          { en: "What kind of films do you enjoy most?", zh: "你最喜欢哪一类电影？" },
+          { en: "Do you prefer watching films at home or at the cinema?", zh: "你更喜欢在家看，还是去电影院？" }
+        ],
+        part2: [
+          { en: "Here is your topic card: 'Describe an actor or actress you admire.' You have one minute to prepare, then please speak for one to two minutes.", zh: "题卡是：描述一个你欣赏的演员。请准备一分钟，然后说一到两分钟。" }
+        ],
+        part3: [
+          { en: "What makes a performance convincing to an audience?", zh: "怎样的表演会让观众觉得真实？" },
+          { en: "Do you think actors should be responsible for the influence they have on young people?", zh: "你觉得演员是否该为他们对年轻人的影响负责？" },
+          { en: "How has streaming changed the way people choose what to watch?", zh: "流媒体怎样改变了人们挑选节目的方式？" }
+        ]
+      },
+      sampleHints: {
+        vocab: [
+          { term: 'a convincing performance', meaning: '有说服力的表演', example: 'Her performance was convincing because it felt unforced.' }
+        ],
+        angles: ['不要只报名字。说一个角色，以及它为什么打动你。'],
+        starters: ["An actor I genuinely admire is..."]
+      }
+    },
+    {
+      id: 'p2-creative-person',
+      part: 'Part 2 & 3',
+      category: '常见题卡',
+      title: '常见题卡：你欣赏的有创造力的人',
+      tag: '常见题卡',
+      cueCard: {
+        topic: 'Describe a creative person you admire, such as an artist, a musician or an architect.',
+        topicZh: '描述一个你欣赏的有创造力的人，比如艺术家、音乐人或建筑师。',
+        prompts: [
+          'Who this person is (这个人是谁)',
+          'How you know about them (你是怎么知道他们的)',
+          'What creative work they do (他们做什么样的创作)',
+          'And explain why you think they are creative. (并说明你为什么觉得他们有创造力)'
+        ]
+      },
+      questions: {
+        part1: [
+          { en: "Do you enjoy making things with your hands?", zh: "你喜欢动手做东西吗？" },
+          { en: "Did you learn art or music at school?", zh: "你在学校学过美术或音乐吗？" }
+        ],
+        part2: [
+          { en: "Here is your topic card: 'Describe a creative person you admire.' Please take one minute to prepare, then speak for up to two minutes.", zh: "题卡是：描述一个你欣赏的有创造力的人。请准备一分钟，然后最多说两分钟。" }
+        ],
+        part3: [
+          { en: "Can creativity be taught, or is it something people are born with?", zh: "创造力是可以教的，还是天生的？" },
+          { en: "Do schools give children enough chance to be creative?", zh: "学校给孩子的创作机会够不够？" },
+          { en: "Why do some creative jobs become more valued as technology develops?", zh: "为什么技术发展以后，有些创造性的工作反而更受重视？" }
+        ]
+      },
+      sampleHints: {
+        vocab: [
+          { term: 'think outside the box', meaning: '不按常规想', example: 'She thinks outside the box when a design looks too ordinary.' }
+        ],
+        angles: ['用一件具体作品说明创造力，不要只说他们很有才。'],
+        starters: ["The creative person I'd like to talk about is..."]
+      }
+    },
+    {
+      id: 'p2-secondhand-app',
+      part: 'Part 2 & 3',
+      category: '考生回忆',
+      title: '考生回忆：买二手或回收物品的网站',
+      tag: '考生回忆',
+      cueCard: {
+        topic: 'Describe a website or an app that you use to buy second-hand or recycled things.',
+        topicZh: '描述一个你用来买二手或回收物品的网站或应用。',
+        prompts: [
+          'What the website or app is (它是什么)',
+          'How you knew about it (你是怎么知道它的)',
+          'What kind of items are sold on it (上面卖什么)',
+          'And explain why you use it. (并说明你为什么用它)'
+        ]
+      },
+      questions: {
+        part1: [
+          { en: "Do you often shop online?", zh: "你经常网购吗？" },
+          { en: "What was the last thing you bought online?", zh: "你上次在网上买了什么？" },
+          { en: "Do you compare prices before you buy something?", zh: "买东西之前你会比价吗？" }
+        ],
+        part2: [
+          { en: "Here is your topic card: 'Describe a website or an app that you use to buy second-hand or recycled things.' You have one minute to prepare.", zh: "题卡是：描述一个你用来买二手或回收物品的网站或应用。你有一分钟准备。" }
+        ],
+        part3: [
+          { en: "Why are more people willing to buy second-hand goods now?", zh: "为什么现在更多人愿意买二手东西？" },
+          { en: "What risks are there in buying used items online?", zh: "在网上买二手物品有什么风险？" },
+          { en: "Should governments do more to encourage recycling and reuse?", zh: "政府是否应该更推动回收和再利用？" }
+        ]
+      },
+      sampleHints: {
+        vocab: [
+          { term: 'a bargain', meaning: '划算的东西', example: 'I found a bargain on a second-hand bookshelf.' },
+          { term: 'give something a second life', meaning: '让东西再被使用', example: 'Buying used clothes gives them a second life.' }
+        ],
+        angles: ['说一次真实下单：你买了什么，为什么比买新的更合适。'],
+        starters: ["The app I keep going back to is..."]
+      }
+    },
+    {
+      id: 'p2-quiet-place',
+      part: 'Part 2 & 3',
+      category: '常见题卡',
+      title: '常见题卡：你喜欢去的安静地方',
+      tag: '常见题卡',
+      cueCard: {
+        topic: 'Describe a quiet place you like to go to.',
+        topicZh: '描述一个你喜欢去的安静地方。',
+        prompts: [
+          'Where it is (它在哪里)',
+          'How you found it (你是怎么找到它的)',
+          'What you do there (你在那里做什么)',
+          'And explain why you like it. (并说明你为什么喜欢它)'
+        ]
+      },
+      questions: {
+        part1: [
+          { en: "Do you like a quiet environment when you study?", zh: "学习时你喜欢安静的环境吗？" },
+          { en: "Is your home usually noisy or quiet?", zh: "你家里通常吵还是安静？" }
+        ],
+        part2: [
+          { en: "Here is your topic card: 'Describe a quiet place you like to go to.' Please prepare for one minute, then speak for one to two minutes.", zh: "题卡是：描述一个你喜欢去的安静地方。请准备一分钟，然后说一到两分钟。" }
+        ],
+        part3: [
+          { en: "Why is it harder to find quiet places in modern cities?", zh: "为什么现代城市里更难找到安静的地方？" },
+          { en: "Do people need silence in order to concentrate?", zh: "人们是不是必须在安静中才能集中注意力？" },
+          { en: "How can city design reduce noise for residents?", zh: "城市规划可以怎样减少居民受到的噪音？" }
+        ]
+      },
+      sampleHints: {
+        vocab: [
+          { term: 'switch off', meaning: '暂时放下杂事', example: 'That library is where I switch off after class.' }
+        ],
+        angles: ['描述你看见和听见的东西，再说这个地方对你有什么用。'],
+        starters: ["A place I go to when I need quiet is..."]
+      }
+    },
+    {
+      id: 'p2-long-friendship',
+      part: 'Part 2 & 3',
+      category: '常见题卡',
+      title: '常见题卡：认识很久的朋友',
+      tag: '常见题卡',
+      cueCard: {
+        topic: 'Describe a friend you have known for a long time.',
+        topicZh: '描述一个你认识很久的朋友。',
+        prompts: [
+          'How you met (你们怎么认识的)',
+          'How long you have known each other (认识了多久)',
+          'What you do together (你们一起做什么)',
+          'And explain why this friendship has lasted. (并说明这段友谊为什么能持续)'
+        ]
+      },
+      questions: {
+        part1: [
+          { en: "Do you have a lot of friends, or a few close ones?", zh: "你是朋友很多，还是只有几个亲近的？" },
+          { en: "How do you usually keep in touch with friends?", zh: "你通常怎么和朋友保持联系？" }
+        ],
+        part2: [
+          { en: "Here is your topic card: 'Describe a friend you have known for a long time.' Take one minute to prepare, then speak for up to two minutes.", zh: "题卡是：描述一个你认识很久的朋友。准备一分钟，然后最多说两分钟。" }
+        ],
+        part3: [
+          { en: "Is it easier to make friends as a child than as an adult?", zh: "小时候交朋友是不是比成年后更容易？" },
+          { en: "What can cause a long friendship to fade?", zh: "什么会让一段长久的友谊变淡？" },
+          { en: "Do social media friendships count as real friendships?", zh: "社交媒体上的朋友算不算真正的朋友？" }
+        ]
+      },
+      sampleHints: {
+        vocab: [
+          { term: 'hit it off', meaning: '一见如故', example: 'We hit it off on the first day of school.' }
+        ],
+        angles: ['用一次你们一起度过的具体事情，说明为什么还保持联系。'],
+        starters: ["I've known this friend since..."]
+      }
+    },
+    {
+      id: 'p2-park',
+      part: 'Part 2 & 3',
+      category: '常见题卡',
+      title: '常见题卡：你喜欢的公园或花园',
+      tag: '常见题卡',
+      cueCard: {
+        topic: 'Describe a park or garden you enjoy visiting.',
+        topicZh: '描述一个你喜欢去的公园或花园。',
+        prompts: [
+          'Where it is (它在哪里)',
+          'What it looks like (它是什么样的)',
+          'Who you go there with (你和谁一起去)',
+          'And explain why you enjoy it. (并说明你为什么喜欢它)'
+        ]
+      },
+      questions: {
+        part1: [
+          { en: "Are there many parks near where you live?", zh: "你住的地方附近公园多吗？" },
+          { en: "How often do you spend time outdoors?", zh: "你多久到户外待一会儿？" }
+        ],
+        part2: [
+          { en: "Here is your topic card: 'Describe a park or garden you enjoy visiting.' You have one minute to think about what you are going to say.", zh: "题卡是：描述一个你喜欢去的公园或花园。你有一分钟想一想要说什么。" }
+        ],
+        part3: [
+          { en: "Why do cities need public parks?", zh: "城市为什么需要公园？" },
+          { en: "Should parks charge an entrance fee?", zh: "公园应该收门票吗？" },
+          { en: "How can green spaces affect people's health?", zh: "绿地会怎样影响人的健康？" }
+        ]
+      },
+      sampleHints: {
+        vocab: [
+          { term: 'a breath of fresh air', meaning: '透一口气，换个环境', example: 'A walk in the park is a breath of fresh air after work.' }
+        ],
+        angles: ['说你在那里看到的人在做什么，不只描述树和花。'],
+        starters: ["The park I enjoy most is..."]
+      }
+    },
+    {
+      id: 'p2-famous-person',
+      part: 'Part 2 & 3',
+      category: '常见题卡',
+      title: '常见题卡：你想见到的名人',
+      tag: '常见题卡',
+      cueCard: {
+        topic: 'Describe a famous person you would like to meet.',
+        topicZh: '描述一个你想见的名人。',
+        prompts: [
+          'Who this person is (这个人是谁)',
+          'What they are famous for (他们因什么出名)',
+          'What you would ask them (你会问他们什么)',
+          'And explain why you would like to meet them. (并说明你为什么想见他们)'
+        ]
+      },
+      questions: {
+        part1: [
+          { en: "Are you interested in famous people?", zh: "你关注名人吗？" },
+          { en: "Do you follow any public figures on social media?", zh: "你在社交媒体上关注公众人物吗？" }
+        ],
+        part2: [
+          { en: "Here is your topic card: 'Describe a famous person you would like to meet.' Prepare for one minute, then speak for one to two minutes.", zh: "题卡是：描述一个你想见的名人。准备一分钟，然后说一到两分钟。" }
+        ],
+        part3: [
+          { en: "Why are people so interested in the private lives of celebrities?", zh: "为什么人们对名人的私生活这么感兴趣？" },
+          { en: "Is fame a fair reward for talent?", zh: "名声是对才能的公平回报吗？" },
+          { en: "What problems can sudden fame create?", zh: "突然成名会带来什么问题？" }
+        ]
+      },
+      sampleHints: {
+        vocab: [
+          { term: 'look up to someone', meaning: '敬佩某人', example: 'I look up to her because of the way she talks about her work.' }
+        ],
+        angles: ['说你会问的一个具体问题，比罗列成就更像在聊天。'],
+        starters: ["If I could meet one famous person, it would be..."]
       }
     }
   ],

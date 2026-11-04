@@ -25,8 +25,8 @@
   --warn-bg: #fff7ed;
   --agent-glow: rgba(37, 99, 168, 0.7);
   --user-glow: rgba(190, 40, 70, 0.55);
-  --pane: color-mix(in srgb, var(--surface) 62%, transparent);
-  --pane-muted: color-mix(in srgb, var(--bg) 56%, transparent);
+  --pane: var(--surface);
+  --pane-muted: var(--bg);
   --radius: 8px;
   --radius-panel: 12px;
   font-size: 16px;
@@ -85,100 +85,59 @@ h2, h3, p { margin: 0; }
 
 .hidden, [hidden] { display: none !important; }
 
-/* 说话时的环境光盖在界面上，但不挡点击。平时完全收起。
-   大光罩铺开整页，小光核跟着音量缩放和移动。 */
-.ambient {
-  position: fixed;
-  inset: 0;
-  z-index: 2;
+/* 说话状态只出现在左侧练习区，不盖住对话和字。
+   考官说话时，题目上方有一块蓝色光。
+   你录音时，回答区底部一块暖色，录音钮外圈跟着音量缩放。 */
+.speak-glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 168px;
   pointer-events: none;
-  overflow: hidden;
-  mix-blend-mode: multiply;
-}
-
-.ambient-agent,
-.ambient-user {
-  position: absolute;
-  inset: 0;
+  z-index: 0;
   opacity: 0;
-  transition: opacity 0.18s linear;
+  transition: opacity 0.2s linear;
 }
 
-.ambient-wash,
-.ambient-core {
+.speak-glow span {
   position: absolute;
+  width: 220px;
+  height: 140px;
   border-radius: 50%;
-  will-change: transform, opacity;
-  transition: transform 0.08s linear, opacity 0.08s linear;
+  filter: blur(10px);
+  transition: transform 0.08s linear;
 }
 
-.ambient-agent .ambient-wash {
-  width: 160vmax;
-  height: 150vmax;
-  left: -48vmax;
-  top: -58vmax;
-  background: radial-gradient(circle, #5b97e4 0%, rgba(91, 151, 228, 0.72) 38%, rgba(91, 151, 228, 0) 72%);
+.speak-glow-agent { top: 0; }
+.speak-glow-agent span {
+  left: 8px;
+  top: -36px;
+  background: rgba(61, 122, 204, 0.42);
 }
 
-.ambient-agent .ambient-core {
-  width: 78vmax;
-  height: 78vmax;
-  left: -18vmax;
-  top: -24vmax;
-  background: radial-gradient(circle, #2f6fd0 0%, rgba(47, 111, 208, 0) 68%);
+.speak-glow-user {
+  bottom: 0;
+  height: 132px;
+}
+.speak-glow-user span {
+  right: 8px;
+  bottom: -28px;
+  background: rgba(214, 96, 68, 0.4);
 }
 
-.ambient-user .ambient-wash {
-  width: 160vmax;
-  height: 150vmax;
-  right: -52vmax;
-  bottom: -58vmax;
-  background: radial-gradient(circle, #f09a86 0%, rgba(240, 154, 134, 0.74) 38%, rgba(240, 154, 134, 0) 72%);
+body.is-agent-speaking .speak-glow-agent,
+body.is-user-speaking .speak-glow-user {
+  opacity: calc(0.62 + var(--ambient-energy, 0) * 0.38);
 }
 
-.ambient-user .ambient-core {
-  width: 78vmax;
-  height: 78vmax;
-  right: -16vmax;
-  bottom: -20vmax;
-  background: radial-gradient(circle, #e15a42 0%, rgba(225, 90, 66, 0) 68%);
-}
-
-body.is-agent-speaking .ambient-agent,
-body.is-user-speaking .ambient-user {
-  opacity: 1;
-}
-
-body.is-agent-speaking .ambient-agent .ambient-wash,
-body.is-user-speaking .ambient-user .ambient-wash {
-  opacity: calc(0.78 + var(--ambient-energy, 0) * 0.22);
-  transform: scale(calc(1.08 + var(--ambient-energy, 0) * 0.34));
-}
-
-body.is-agent-speaking .ambient-agent .ambient-core {
-  opacity: calc(0.45 + var(--ambient-energy, 0) * 0.55);
-  transform: scale(calc(0.72 + var(--ambient-energy, 0) * 0.85)) translate3d(calc(var(--ambient-energy, 0) * 10vmax), calc(var(--ambient-energy, 0) * 6vmax), 0);
-}
-
-body.is-user-speaking .ambient-user .ambient-core {
-  opacity: calc(0.45 + var(--ambient-energy, 0) * 0.55);
-  transform: scale(calc(0.72 + var(--ambient-energy, 0) * 0.85)) translate3d(calc(var(--ambient-energy, 0) * -10vmax), calc(var(--ambient-energy, 0) * -6vmax), 0);
+body.is-agent-speaking .speak-glow-agent span,
+body.is-user-speaking .speak-glow-user span {
+  transform: scale(calc(0.86 + var(--ambient-energy, 0) * 0.42));
 }
 
 @media (prefers-color-scheme: dark) {
-  .ambient { mix-blend-mode: screen; }
-  .ambient-agent .ambient-wash {
-    background: radial-gradient(circle, rgba(110, 176, 255, 0.95) 0%, rgba(110, 176, 255, 0.45) 42%, transparent 74%);
-  }
-  .ambient-agent .ambient-core {
-    background: radial-gradient(circle, rgba(150, 205, 255, 0.95) 0%, transparent 68%);
-  }
-  .ambient-user .ambient-wash {
-    background: radial-gradient(circle, rgba(255, 120, 100, 0.92) 0%, rgba(255, 120, 100, 0.42) 42%, transparent 74%);
-  }
-  .ambient-user .ambient-core {
-    background: radial-gradient(circle, rgba(255, 160, 130, 0.95) 0%, transparent 68%);
-  }
+  .speak-glow-agent span { background: rgba(128, 176, 255, 0.38); }
+  .speak-glow-user span { background: rgba(255, 146, 112, 0.34); }
 }
 
 .shell {
@@ -195,7 +154,7 @@ body.is-user-speaking .ambient-user .ambient-core {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: color-mix(in srgb, var(--surface) 74%, transparent);
+  background: var(--surface);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
@@ -213,16 +172,12 @@ body.is-user-speaking .ambient-user .ambient-core {
   flex-shrink: 0;
 }
 
-.topic-select {
-  flex: 1 1 160px;
+.topic-label {
+  flex: 1 1 140px;
   min-width: 0;
-  height: 32px;
-  max-width: 360px;
-  padding: 0 8px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -241,10 +196,11 @@ body.is-user-speaking .ambient-user .ambient-core {
   .product-name { display: none; }
   #agent-switcher-cards { order: 1; }
   .topbar-actions { order: 2; margin-left: auto; }
-  .topic-select { order: 3; flex: 1 1 100%; max-width: none; }
-  .btn-custom { order: 4; }
-  .btn-restart { order: 5; }
-  #ielts-part-tabs { order: 6; }
+  #random-topic-btn { order: 3; }
+  .topic-label { order: 4; flex: 1 1 100%; }
+  .btn-custom { order: 5; }
+  .btn-restart { order: 6; }
+  #ielts-part-tabs { order: 7; }
 }
 
 .workspace {
@@ -255,11 +211,13 @@ body.is-user-speaking .ambient-user .ambient-core {
 }
 
 .practice {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  background: var(--pane);
+  overflow: hidden;
+  background: var(--surface);
 }
 
 .practice-scroll {
@@ -270,6 +228,16 @@ body.is-user-speaking .ambient-user .ambient-core {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.practice-scroll,
+.composer { position: relative; z-index: 1; }
+
+.question-block {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  padding: 14px 16px;
 }
 
 .transcript-pane {
@@ -400,7 +368,7 @@ body.is-user-speaking .ambient-user .ambient-core {
   flex-shrink: 0;
   padding: 12px 16px 14px;
   border-top: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  background: var(--surface);
 }
 .tool-row,
 .composer-row {
@@ -614,7 +582,22 @@ body.is-user-speaking .ambient-user .ambient-core {
 .btn-primary:hover { background: var(--accent); filter: brightness(1.08); }
 .btn-record,
 .btn-send { height: 44px; }
-.btn-record { min-width: 72px; }
+.btn-record { min-width: 72px; position: relative; }
+.btn-record::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  pointer-events: none;
+  opacity: 0;
+  transition: transform 0.08s linear, opacity 0.08s linear;
+}
+body.is-user-speaking .btn-record::before {
+  opacity: 1;
+  border-color: rgba(214, 96, 68, calc(0.4 + var(--ambient-energy, 0) * 0.6));
+  transform: scale(calc(1 + var(--ambient-energy, 0) * 0.14));
+}
 .btn-record.is-recording {
   background: var(--danger);
   color: var(--on-danger);
@@ -817,29 +800,17 @@ textarea.field { height: auto; padding: 8px 10px; resize: vertical; }
 ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 45%, transparent); border-radius: 99px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ambient-agent,
-  .ambient-user,
-  .btn:active { transition: none; transform: none; }
-  .ambient-wash,
-  .ambient-core { transition: none; }
-  body.is-agent-speaking .ambient-agent .ambient-wash,
-  body.is-user-speaking .ambient-user .ambient-wash,
-  body.is-agent-speaking .ambient-agent .ambient-core,
-  body.is-user-speaking .ambient-user .ambient-core {
-    transform: none;
-    opacity: 0.7;
-  }
+  .btn:active,
+  .speak-glow,
+  .speak-glow span,
+  .btn-record::before { transition: none; }
+  body.is-agent-speaking .speak-glow-agent span,
+  body.is-user-speaking .speak-glow-user span,
+  body.is-user-speaking .btn-record::before { transform: none; }
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .ambient { display: none; }
-  .topbar,
-  .practice,
-  .composer,
-  .cue-card,
-  .hint-panel,
-  .correction { background: var(--surface); }
-  .transcript-pane { background: var(--bg); }
-  body.is-agent-speaking .shell { box-shadow: inset 0 0 0 6px var(--accent); }
-  body.is-user-speaking .shell { box-shadow: inset 0 0 0 6px var(--danger); }
+  .speak-glow { display: none; }
+  body.is-agent-speaking .practice { box-shadow: inset 0 4px 0 var(--accent); }
+  body.is-user-speaking .practice { box-shadow: inset 0 -4px 0 var(--danger); }
 }

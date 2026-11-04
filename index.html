@@ -7,23 +7,13 @@
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <div class="ambient" aria-hidden="true">
-    <div class="ambient-agent">
-      <span class="ambient-wash"></span>
-      <span class="ambient-core"></span>
-    </div>
-    <div class="ambient-user">
-      <span class="ambient-wash"></span>
-      <span class="ambient-core"></span>
-    </div>
-  </div>
-
   <div class="shell">
     <header class="topbar">
       <span class="product-name">口语对练</span>
       <div id="agent-switcher-cards" class="segment" role="tablist" aria-label="练习方式"></div>
-      <select id="topic-select" class="topic-select" aria-label="题目"></select>
-      <button type="button" class="btn btn-custom" onclick="app.openCustomTopicModal()">自定义</button>
+      <button type="button" id="random-topic-btn" class="btn" onclick="app.pickRandomTopic()">随机选题</button>
+      <span id="current-topic-label" class="topic-label"></span>
+      <button type="button" id="custom-topic-btn" class="btn btn-custom" onclick="app.openCustomTopicModal()">自定义</button>
       <div id="ielts-part-tabs" class="segment" role="tablist" aria-label="部分"></div>
       <button type="button" class="btn btn-restart" onclick="app.startNewSession(true)">重来</button>
       <div class="topbar-actions">
@@ -41,6 +31,8 @@
 
     <main class="workspace">
       <section class="practice" aria-label="当前练习">
+        <div class="speak-glow speak-glow-agent" aria-hidden="true"><span></span></div>
+        <div class="speak-glow speak-glow-user" aria-hidden="true"><span></span></div>
         <div class="practice-scroll">
           <div class="question-block">
             <div class="question-top">
@@ -156,10 +148,9 @@
       </div>
       <div class="modal-body form-stack">
         <div class="form-row">
-          <label for="custom-topic-mode">用在哪种练习</label>
+          <label for="custom-topic-mode">保存到考官题库</label>
           <select id="custom-topic-mode" class="field">
-            <option value="examiner">考官</option>
-            <option value="casual">陪练</option>
+            <option value="examiner">考官随机题库</option>
           </select>
         </div>
         <div class="form-row">

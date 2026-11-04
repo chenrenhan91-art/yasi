@@ -151,7 +151,7 @@ class IELTSSpeakingApp {
     }
 
     this.renderAgentCards();
-    this.renderTopicSelector();
+    this.updateTopicChrome();
     this.updateNotebookBadge();
     this.updateApiStatusIndicator();
   }
@@ -217,7 +217,7 @@ class IELTSSpeakingApp {
 
   handleAudioEnergyUpdate(mode, energy) {
     const level = Math.max(0, Math.min(1, Number(energy) || 0));
-    const shaped = Math.min(1, Math.sqrt(level) * 1.2);
+    const shaped = Math.min(1, 0.2 + level * 1.05);
     document.documentElement.style.setProperty('--ambient-energy', shaped.toFixed(3));
   }
 
@@ -262,7 +262,7 @@ class IELTSSpeakingApp {
     this.currentPart = mode === 'examiner' ? (topics[0].part === 'Part 3' ? 'Part 3' : (topics[0].part === 'Part 2 & 3' ? 'Part 2' : 'Part 1')) : 'Free Talk';
 
     this.renderAgentCards();
-    this.renderTopicSelector();
+    this.updateTopicChrome();
     this.startNewSession(true);
   }
 
@@ -285,13 +285,22 @@ class IELTSSpeakingApp {
 
   switchIeltsPart(partName) {
     if (this.agentMode !== 'examiner') return;
+    const topic = this.getCurrentTopic();
+    const key = partName === 'Part 1' ? 'part1' : (partName === 'Part 2' ? 'part2' : 'part3');
+    const list = topic.questions?.[key];
+    const hasQuestions = Array.isArray(list) && list.length > 0;
+    const hasCue = partName === 'Part 2' && topic.cueCard;
+    if (!hasQuestions && !hasCue) {
+      this.showToast('这套题没有这一部分。', 'warning');
+      return;
+    }
+
     this.currentPart = partName;
     this.questionIndex = 0;
     this.renderPartTabs();
     this.renderPart2CueCard();
     this.renderAgentStageHeader();
 
-    const topic = this.getCurrentTopic();
     let en = '';
     let zh = '';
 
@@ -354,23 +363,56 @@ class IELTSSpeakingApp {
         const q1 = topic.questions?.part1?.[0];
         const q1En = typeof q1 === 'string' ? q1 : (q1?.en || "Could you tell me about where you live?");
         const q1Zh = typeof q1 === 'object' && q1?.zh ? q1.zh : '能先聊聊你居住的地方吗？';
-        firstEn = `Good day. I'm Dr. Arthur Pendelton, your examiner for today's session. Let's begin with Part 1. ${q1En}`;
-        firstZh = `你好，我是今天的雅思考官阿瑟·彭德尔顿博士。让我们从 Part 1 开始。${q1Zh}`;
+        const examiner = window.IELTS_DATA.agents.examiner;
+        firstEn = `Good morning. I'm ${examiner.name}. Let's begin with Part 1. ${q1En}`;
+        firstZh = `早上好，我是${examiner.nameZh}。我们从 Part 1 开始。${q1Zh}`;
       }
     } else {
-      firstEn = topic.openingPrompt || window.IELTS_DATA.agents.casual.defaultGreeting;
-      firstZh = topic.openingPromptZh || window.IELTS_DATA.agents.casual.defaultGreetingZh;
+      firstEn = window.IELTS_DATA.agents.casual.defaultGreeting;
+      firstZh = window.IELTS_DATA.agents.casual.defaultGreetingZh;
     }
 
     this.appendAgentMessage(firstEn, firstZh, speakGreeting);
+    this.updateTopicChrome();
   }
 
   // ============================================================================
   // Minimalist Header Segmented Agent Switcher & Left Controls
   // ============================================================================
   syncModeChrome() {
+    const examiner = this.agentMode === 'examiner';
     const reportBtn = document.getElementById('assessment-open-btn');
-    if (reportBtn) reportBtn.classList.toggle('hidden', this.agentMode !== 'examiner');
+    const randomBtn = document.getElementById('random-topic-btn');
+    const customBtn = document.getElementById('custom-topic-btn');
+    const topicLabel = document.getElementById('current-topic-label');
+    if (reportBtn) reportBtn.classList.toggle('hidden', !examiner);
+    if (randomBtn) randomBtn.classList.toggle('hidden', !examiner);
+    if (customBtn) customBtn.classList.toggle('hidden', !examiner);
+    if (topicLabel) topicLabel.classList.toggle('hidden', !examiner);
+  }
+
+  updateTopicChrome() {
+    const label = document.getElementById('current-topic-label');
+    if (!label) return;
+    if (this.agentMode !== 'examiner') {
+      label.textContent = '';
+      return;
+    }
+    const topic = this.getCurrentTopic();
+    label.textContent = topic ? topic.title : '';
+  }
+
+  pickRandomTopic() {
+    if (this.agentMode !== 'examiner') return;
+    const topics = this.getAllTopicsForCurrentMode();
+    if (!topics.length) return;
+    let next = topics[Math.floor(Math.random() * topics.length)];
+    if (topics.length > 1) {
+      const others = topics.filter(topic => topic.id !== this.currentTopicId);
+      next = others[Math.floor(Math.random() * others.length)];
+    }
+    this.selectTopic(next.id);
+    this.showToast(`这套题：${next.title}`);
   }
 
   renderAgentCards() {
@@ -383,18 +425,6 @@ class IELTSSpeakingApp {
       <button type="button" class="${!isEx ? 'is-on' : ''}" aria-pressed="${!isEx}" onclick="app.switchAgentMode('casual')">陪练</button>
     `;
     this.syncModeChrome();
-  }
-
-  renderTopicSelector() {
-    const select = document.getElementById('topic-select');
-    if (!select) return;
-
-    const topics = this.getAllTopicsForCurrentMode();
-    select.innerHTML = topics.map(t => `
-      <option value="${t.id}" ${t.id === this.currentTopicId ? 'selected' : ''}>${this.escapeHtml(t.title)}</option>
-    `).join('');
-
-    select.onchange = (e) => this.selectTopic(e.target.value);
   }
 
   renderPartTabs() {
@@ -437,22 +467,13 @@ class IELTSSpeakingApp {
     if (!cardEl) return;
 
     const topic = this.getCurrentTopic();
-    const cue = topic.cueCard || {
-      topic: `Describe a memorable experience related to ${topic.title}.`,
-      topicZh: '描述一段与该主题相关的难忘经历。',
-      prompts: [
-        'When and where it happened (发生的时间与地点)',
-        'Who was involved (有哪些人参与)',
-        'What you did during this experience (你在过程中做了什么)',
-        'And explain why it left a deep impression on you. (并解释为何令你印象深刻)'
-      ]
-    };
-
-    if (this.agentMode !== 'examiner' || this.currentPart !== 'Part 2') {
+    if (this.agentMode !== 'examiner' || this.currentPart !== 'Part 2' || !topic.cueCard) {
       cardEl.classList.add('hidden');
       this.stopPart2Timer();
       return;
     }
+
+    const cue = topic.cueCard;
 
     cardEl.classList.remove('hidden');
     const titleHtml = this.showChineseTranslation && cue.topicZh
@@ -1245,13 +1266,23 @@ class IELTSSpeakingApp {
       openingPromptZh: `嗨！我们来聊聊「${title}」吧，你对此有什么想法？`
     };
 
+    if (mode === 'casual') {
+      this.agentMode = 'casual';
+      this.renderAgentCards();
+      this.updateTopicChrome();
+      this.closeCustomTopicModal();
+      this.startNewSession(true);
+      this.showToast('陪练不按题目来，我们自然聊。');
+      return;
+    }
+
     this.customTopics.push(newTopic);
     this.saveCustomTopics();
 
     this.agentMode = mode;
     this.currentTopicId = newTopic.id;
     this.renderAgentCards();
-    this.renderTopicSelector();
+    this.updateTopicChrome();
     this.closeCustomTopicModal();
     this.startNewSession(true);
     this.showToast('已换成这道题。');

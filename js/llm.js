@@ -108,20 +108,21 @@ class LLMService {
         : '';
       const qBank = currentTopic?.questions ? JSON.stringify(currentTopic.questions) : '';
 
-      return `You are Dr. Arthur Pendelton, an official, certified IELTS Speaking Senior Examiner.
+      return `You are Claire Hargreaves, the IELTS Speaking examiner in this practice session.
 Rules:
-1. Respond with a concise, natural British/International English examiner turn (1-3 sentences) and its accurate Chinese translation.
+1. Respond with a concise, natural English examiner turn (1-3 sentences) and its accurate Chinese translation.
 2. NEVER correct grammar out loud in your spoken reply (a separate sidebar handles grammar corrections).
 3. Acknowledge the candidate's point briefly, then ask the next question or a probing follow-up ("Why do you think that is?", "Could you give a concrete example?").
 4. Current Topic: "${currentTopic?.title || 'IELTS Speaking'}", Current Section: ${currentPart}. ${cueInfo}
 Question Bank: ${qBank}
 Return ONLY valid JSON: {"en": "Your spoken English response", "zh": "对应的自然中文翻译"}`;
     } else {
-      return `You are Maya Lin, a warm, upbeat native-speaking friend chatting casually with the user to practice everyday spoken English.
+      return `You are Maya Lin, a warm native-speaking friend chatting with the user.
 Rules:
-1. Use natural, idiomatic English (phrasal verbs, warm reactions, conversational rhythm) in 2-3 sentences, ending with a fun follow-up question.
-2. NEVER lecture on grammar out loud.
-3. Current Scenario: "${currentTopic?.title || 'Casual Catch-up'}".
+1. There is no set topic and no exam. Follow whatever they bring up.
+2. Use natural spoken English in 2-3 sentences, and end with one follow-up question.
+3. NEVER lecture on grammar out loud.
+4. If they have said very little, ask about their day or something they just mentioned.
 Return ONLY valid JSON: {"en": "Your spoken English response", "zh": "对应的自然中文翻译"}`;
     }
   }
@@ -366,38 +367,6 @@ Return ONLY a valid JSON object with the exact following keys (MUST include accu
         exp: 'tourists 是可数名词复数，表示“更少的”应使用 fewer 而非修饰不可数名词的 less。'
       },
       {
-        regex: /\bmore and more\b/gi,
-        replace: 'an increasing number of',
-        type: '词汇多样性 (LR)',
-        orig: 'more and more',
-        rep: 'increasingly / a growing number of',
-        exp: 'more and more 属于基础口语表达，替换为 a growing number of 更契合雅思 7 分词汇要求。'
-      },
-      {
-        regex: /\bi think\b/gi,
-        replace: 'From my perspective,',
-        type: '高分连接标记',
-        orig: 'I think',
-        rep: 'From my perspective / I reckon',
-        exp: '高频重复 I think 会限制流利度与连贯性（FC）得分，可替换为 I reckon 或 From my perspective。'
-      },
-      {
-        regex: /\bvery important\b/gi,
-        replace: 'indispensable',
-        type: '精准词汇替换',
-        orig: 'very important',
-        rep: 'indispensable / crucial / paramount',
-        exp: '用高阶形容词 indispensable（不可或缺的）替代 very + 基础词，能显著拉升词汇分（LR）。'
-      },
-      {
-        regex: /\bvery good\b/gi,
-        replace: 'breathtaking',
-        type: '精准词汇替换',
-        orig: 'very good',
-        rep: 'breathtaking / exceptional / rewarding',
-        exp: '避免过度依赖 very good，根据语境使用 breathtaking（令人惊叹的）或 rewarding（有收获的）更地道。'
-      },
-      {
         regex: /\b(?:last year|yesterday|ago)\s+I\s+go\b/gi,
         replace: (match) => match.replace(/\bgo\b/i, 'went'),
         type: '过去时态一致',
@@ -510,7 +479,7 @@ Return ONLY a valid JSON object with the exact following keys (MUST include accu
       try {
         const prompt = `The user is practicing English speaking (${agentMode === 'examiner' ? 'IELTS Speaking Test' : 'Casual English Conversation'}) and is stuck on how to answer:
 Question: "${lastAgentQuestion}"
-Topic: "${currentTopic?.title || ''}"
+${agentMode === 'examiner' ? `Topic: "${currentTopic?.title || ''}"` : 'There is no set topic. Help them continue a natural conversation.'}
 
 Provide instant speaking hints in JSON format:
 {
@@ -541,6 +510,16 @@ Provide instant speaking hints in JSON format:
       }
     }
 
+    if (agentMode !== 'examiner') {
+      return {
+        vocab: [
+          { term: 'to be honest', meaning: '说实话', example: 'To be honest, this week has been pretty hectic.' },
+          { term: 'catch up', meaning: '叙旧、聊聊近况', example: 'We should catch up properly this weekend.' }
+        ],
+        angles: ['就对方刚才那句话多说一个细节，再反问一句。'],
+        starters: ["Oh, that reminds me...", "You know what, the funny thing is..."]
+      };
+    }
     if (currentTopic && currentTopic.sampleHints) {
       return currentTopic.sampleHints;
     }
