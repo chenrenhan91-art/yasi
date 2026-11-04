@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>口语对练</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient-agent">
+      <span class="ambient-wash"></span>
+      <span class="ambient-core"></span>
+    </div>
+    <div class="ambient-user">
+      <span class="ambient-wash"></span>
+      <span class="ambient-core"></span>
+    </div>
+  </div>
+
+  <div class="shell">
+    <header class="topbar">
+      <span class="product-name">口语对练</span>
+      <div id="agent-switcher-cards" class="segment" role="tablist" aria-label="练习方式"></div>
+      <select id="topic-select" class="topic-select" aria-label="题目"></select>
+      <button type="button" class="btn btn-custom" onclick="app.openCustomTopicModal()">自定义</button>
+      <div id="ielts-part-tabs" class="segment" role="tablist" aria-label="部分"></div>
+      <button type="button" class="btn btn-restart" onclick="app.startNewSession(true)">重来</button>
+      <div class="topbar-actions">
+        <button type="button" class="btn" onclick="app.openNotebookModal()">
+          语料
+          <span id="notebook-count-badge" class="count-badge hidden">0</span>
+        </button>
+        <button type="button" id="assessment-open-btn" class="btn" onclick="app.openAssessmentReportModal()">报告</button>
+        <button type="button" class="btn" onclick="app.openSettingsModal()" title="语音和模型">
+          <span id="api-status-dot" class="status-dot"></span>
+          <span id="api-status-text">设置</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="practice" aria-label="当前练习">
+        <div class="practice-scroll">
+          <div class="question-block">
+            <div class="question-top">
+              <span id="question-meta">准备</span>
+              <button type="button" class="text-btn" onclick="app.replayLastAgentQuestion()">重听</button>
+            </div>
+            <p id="stage-question-en" class="question-en" lang="en" aria-live="polite" onclick="app.peekCurrentQuestion()"></p>
+            <p id="stage-question-zh" class="question-zh hidden" lang="zh-CN"></p>
+          </div>
+
+          <section id="part2-cue-card" class="cue-card hidden">
+            <div class="cue-top">
+              <span id="part2-timer-phase" class="phase" data-phase="prep">准备</span>
+              <span id="part2-timer-display" class="timer">01:00</span>
+              <button type="button" id="part2-timer-btn" class="btn" onclick="app.togglePart2Timer()">开始</button>
+              <button type="button" class="btn" onclick="app.resetPart2Timer('speak')">改为陈述</button>
+            </div>
+            <p class="cue-note">先看题。准备 1 分钟，再陈述最多 2 分钟。</p>
+            <h2 id="cue-card-title" class="cue-title"></h2>
+            <ul id="cue-card-prompts" class="cue-list"></ul>
+          </section>
+
+          <section id="hint-drawer" class="hint-panel hidden">
+            <div class="hint-top">
+              <strong>提示</strong>
+              <button type="button" class="text-btn" onclick="app.toggleHintDrawer()">收起</button>
+            </div>
+            <div id="hint-drawer-content"></div>
+          </section>
+        </div>
+
+        <div class="composer">
+          <div class="tool-row">
+            <label class="tool-field">人声
+              <select id="voice-preset-select" class="tool-select" aria-label="人声"></select>
+            </label>
+            <label class="tool-field">语速
+              <select id="rate-select" class="tool-select" aria-label="语速">
+                <option value="0.8">0.8x</option>
+                <option value="0.9">0.9x</option>
+                <option value="1">1.0x</option>
+                <option value="1.1">1.1x</option>
+                <option value="1.2">1.2x</option>
+              </select>
+            </label>
+            <label class="tool-check" title="遮住考官英文，先听再看">
+              <input id="blind-mode-toggle" type="checkbox" />
+              盲听
+            </label>
+            <button type="button" id="zh-toggle-btn" class="tool-chip is-on" aria-pressed="true" onclick="app.toggleChineseTranslation()">中文</button>
+            <button type="button" id="hint-toggle-btn" class="tool-chip" aria-expanded="false" onclick="app.toggleHintDrawer()">提示</button>
+          </div>
+          <div class="composer-row">
+            <button id="mic-record-btn" type="button" class="btn btn-primary btn-record" onclick="app.toggleMicrophone()" aria-pressed="false">录音</button>
+            <input id="user-text-input" class="composer-input" type="text" lang="en" enterkeyhint="send" autocomplete="off" spellcheck="false" placeholder="输入英文，Enter 发送" />
+            <button type="button" class="btn btn-send" onclick="app.submitUserResponse()">发送</button>
+          </div>
+          <p id="mic-status-label" class="status-line" aria-live="polite">准备好了。点录音，或输入后按 Enter。</p>
+        </div>
+      </section>
+
+      <section class="transcript-pane" aria-label="对话">
+        <div class="transcript-head">
+          <div class="transcript-title">
+            <h2>对话</h2>
+            <span id="turn-count-badge">0 轮</span>
+          </div>
+          <div class="segment" role="tablist" aria-label="对话筛选">
+            <button type="button" id="filter-btn-all" class="is-on" aria-pressed="true" onclick="app.setTranscriptFilter('all')">全部</button>
+            <button type="button" id="filter-btn-corrections" aria-pressed="false" onclick="app.setTranscriptFilter('corrections')">纠错</button>
+          </div>
+        </div>
+        <div id="transcript-stream" class="transcript-stream"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="notebook-modal" class="modal-back hidden">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notebook-title">
+      <div class="modal-head">
+        <div>
+          <h3 id="notebook-title">语料本</h3>
+          <p class="field-help">收藏过的句子，可以导出。</p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="app.exportNotebook('md')">导出 Markdown</button>
+          <button type="button" class="btn" onclick="app.exportNotebook('csv')">导出表格</button>
+          <button type="button" class="btn" onclick="app.closeNotebookModal()">关闭</button>
+        </div>
+      </div>
+      <div id="notebook-items-list" class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="assessment-modal" class="modal-back hidden">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="assessment-title">
+      <div class="modal-head">
+        <div>
+          <h3 id="assessment-title">这次练习</h3>
+          <p class="field-help">流利、词汇、语法按文字估算，不是正式成绩。</p>
+        </div>
+        <button type="button" class="btn" onclick="app.closeAssessmentModal()">关闭</button>
+      </div>
+      <div id="assessment-modal-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="custom-topic-modal" class="modal-back hidden">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="custom-topic-title">
+      <div class="modal-head">
+        <h3 id="custom-topic-title">自定义题目</h3>
+        <button type="button" class="btn" onclick="app.closeCustomTopicModal()">关闭</button>
+      </div>
+      <div class="modal-body form-stack">
+        <div class="form-row">
+          <label for="custom-topic-mode">用在哪种练习</label>
+          <select id="custom-topic-mode" class="field">
+            <option value="examiner">考官</option>
+            <option value="casual">陪练</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="custom-topic-title">题目</label>
+          <input id="custom-topic-title" class="field" type="text" placeholder="Describe a quiet place you like" />
+        </div>
+        <div class="form-row">
+          <label for="custom-topic-cue">题卡提示，每行一条，可以不填</label>
+          <textarea id="custom-topic-cue" class="field" rows="3" placeholder="Where it is"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="custom-topic-questions">问题，每行一条</label>
+          <textarea id="custom-topic-questions" class="field" rows="3" placeholder="Why do people need quiet places?"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="app.closeCustomTopicModal()">取消</button>
+          <button type="button" class="btn btn-primary" onclick="app.saveNewCustomTopic()">保存并开始</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal-back hidden">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-head">
+        <h3 id="settings-title">语音和模型</h3>
+        <button type="button" class="btn" onclick="app.closeSettingsModal()">关闭</button>
+      </div>
+      <div class="modal-body form-stack">
+        <div class="form-row">
+          <label for="tts-engine-select">读音引擎</label>
+          <select id="tts-engine-select" class="field">
+            <option value="auto">自动</option>
+            <option value="prosody">浏览器语音</option>
+            <option value="kokoro_wasm">浏览器开源模型（首次会下载）</option>
+            <option value="edge_local">本机 edge-tts（需用启动脚本）</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="api-provider-select">批改来源</label>
+          <select id="api-provider-select" class="field">
+            <option value="auto">自动：有密钥用云端，否则用内置</option>
+            <option value="demo">只用内置批改</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <span id="provider-preset-label">常用平台</span>
+          <div class="preset-row" role="group" aria-labelledby="provider-preset-label">
+            <button type="button" class="btn" onclick="app.applyProviderPreset('deepseek')">DeepSeek</button>
+            <button type="button" class="btn" onclick="app.applyProviderPreset('openai')">OpenAI</button>
+            <button type="button" class="btn" onclick="app.applyProviderPreset('siliconflow')">硅基流动</button>
+            <button type="button" class="btn" onclick="app.applyProviderPreset('gemini')">Gemini</button>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label for="api-base-url">API 地址</label>
+            <input id="api-base-url" class="field field-mono" type="text" spellcheck="false" placeholder="https://api.deepseek.com/v1" />
+          </div>
+          <div class="form-row">
+            <label for="api-model-input">模型</label>
+            <input id="api-model-input" class="field field-mono" type="text" spellcheck="false" placeholder="deepseek-chat" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="api-key-input">API Key</label>
+          <input id="api-key-input" class="field field-mono" type="password" spellcheck="false" autocomplete="off" placeholder="sk-..." />
+          <p class="field-help">只保存在这台浏览器。</p>
+        </div>
+        <div class="modal-actions modal-actions-split">
+          <button id="test-api-btn" type="button" class="btn" onclick="app.testApiSettings()">测试连接</button>
+          <div class="modal-actions">
+            <button type="button" class="btn" onclick="app.closeSettingsModal()">取消</button>
+            <button type="button" class="btn btn-primary" onclick="app.saveApiSettings()">保存</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-toast" class="toast hidden" role="status"></div>
+
+  <script src="js/topics.js"></script>
+  <script src="js/speech.js"></script>
+  <script src="js/llm.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
